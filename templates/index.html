@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitHub Activity Monitor</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .event { margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
+        .timestamp { color: #6c757d; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>Recent GitHub Activities</h1>
+    <div id="events-container"></div>
+
+    <script>
+        let lastTimestamp = null;
+        
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+        }
+
+        function formatEvent(event) {
+            let actionText = "";
+            switch(event.action) {
+                case "PUSH":
+                    actionText = `${event.author} pushed to ${event.to_branch}`;
+                    break;
+                case "PULL_REQUEST":
+                    actionText = `${event.author} submitted a PR from ${event.from_branch} to ${event.to_branch}`;
+                    break;
+                case "MERGE":
+                    actionText = `${event.author} merged ${event.from_branch} to ${event.to_branch}`;
+                    break;
+            }
+            return `
+                <div class="event">
+                    <div class="action">${actionText}</div>
+                    <div class="timestamp">${formatDate(event.timestamp)}</div>
+                </div>
+            `;
+        }
+
+        function fetchEvents() {
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    if (events.length > 0) {
+                        const currentLatest = events[0].timestamp;
+                        if (!lastTimestamp || currentLatest > lastTimestamp) {
+                            document.getElementById('events-container').innerHTML = 
+                                events.map(formatEvent).join('');
+                            lastTimestamp = currentLatest;
+                        }
+                    }
+                });
+        }
+
+        // Poll every 15 seconds
+        setInterval(fetchEvents, 15000);
+        fetchEvents(); // Initial load
+    </script>
+</body>
+</html>
